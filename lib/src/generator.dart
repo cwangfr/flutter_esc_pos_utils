@@ -69,7 +69,11 @@ class Generator {
         .replaceAll(" ", ' ')
         .replaceAll("•", '.');
     if (!isKanji) {
-      return codec.encode(text);
+      try {
+        return Uint8List.fromList(cp858.encode(text));
+      } catch (_) {
+        return Uint8List.fromList(text.codeUnits);
+      }
     } else {
       return Uint8List.fromList(gbk_bytes.encode(text));
     }
@@ -103,6 +107,10 @@ class Generator {
     return ch.codeUnitAt(0) > 255;
   }
 
+  bool _hasChinese(String ch) {
+    final ch1 = ch.replaceAll("€", "");
+    return ch1.codeUnits.any((element) => element > 255);
+  }
   /// Generate multiple bytes for a number: In lower and higher parts, or more parts as needed.
   ///
   /// [value] Input number
@@ -315,6 +323,7 @@ class Generator {
     // Set Kanji mode
     if (isKanji) {
       bytes += cKanjiOn.codeUnits;
+      bytes += Uint8List.fromList([0x1c, 0x43, 0x00]);
     } else {
       bytes += cKanjiOff.codeUnits;
     }
@@ -352,22 +361,48 @@ class Generator {
     String text, {
     PosStyles styles = const PosStyles(),
     int linesAfter = 0,
-    bool containsChinese = false,
+    //bool containsChinese = false,
     int? maxCharsPerLine,
   }) {
     List<int> bytes = [];
-    if (!containsChinese) {
+    if (!_hasChinese(text)) {
       bytes += _text(
-        _encode(text, isKanji: containsChinese),
+        _encode(text, isKanji: false),
         styles: styles,
-        isKanji: containsChinese,
+        isKanji: false,
         maxCharsPerLine: maxCharsPerLine,
+        colInd: null,
       );
       // Ensure at least one line break after the text
       bytes += emptyLines(linesAfter + 1);
     } else {
       bytes += _mixedKanji(text, styles: styles, linesAfter: linesAfter);
     }
+    return bytes;
+  }
+
+
+  List<int> rawText(
+    String text, {
+    PosStyles styles = const PosStyles(),
+    int linesAfter = 0,
+    //bool containsChinese = false,
+    int? maxCharsPerLine,
+  }) {
+    List<int> bytes = [];
+    // if (!_hasChinese(text)) {
+    bytes += _text(
+      Uint8List.fromList(text.codeUnits),
+      styles: styles,
+      isKanji: false,
+      maxCharsPerLine: maxCharsPerLine,
+      colInd: null,
+    );
+    // Ensure at least one line break after the text
+    bytes += emptyLines(linesAfter + 1);
+    // } else {
+    //   bytes += _mixedKanji(text, styles: styles, linesAfter: linesAfter);
+    // }
     return bytes;
   }
 
@@ -386,13 +421,17 @@ class Generator {
   ///
   /// Similar to [emptyLines] but uses an alternative command
   List<int> feed(int n) {
-    List<int> bytes = [];
-    if (n >= 0 && n <= 255) {
-      bytes += Uint8List.fromList(
-        List.from(cFeedN.codeUnits)..add(n),
-      );
-    }
-    return bytes;
+    return emptyLines(n);
+    // List<int> bytes = [];
+    // for (int i = 0; i < n; i++) {
+    //   bytes += Uint8List.fromList("\n".codeUnits);
+    // }
+    // // if (n >= 0 && n <= 255) {
+    // //   bytes += Uint8List.fromList(
+    // //     List.from(cFeedN.codeUnits)..add(n),
+    // //   );
+    // // }
+    // return bytes;
   }
 
   /// Cut the paper
