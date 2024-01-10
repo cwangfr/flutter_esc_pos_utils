@@ -19,6 +19,9 @@ class PosColumn {
       throw Exception(
           'Only one parameter - text or textEncoded - should be passed');
     }
+
+    containsChinese =
+        text.replaceAll("€", "").codeUnits.any((element) => element > 255);    
   }
 
   String text;
