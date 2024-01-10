@@ -5,6 +5,7 @@ import 'package:image/image.dart';
 import 'package:gbk_codec/gbk_codec.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 import 'commands.dart';
+import 'package:charset/charset.dart';
 
 class Generator {
   Generator(this._paperSize, this._profile,
@@ -111,6 +112,7 @@ class Generator {
     final ch1 = ch.replaceAll("€", "");
     return ch1.codeUnits.any((element) => element > 255);
   }
+
   /// Generate multiple bytes for a number: In lower and higher parts, or more parts as needed.
   ///
   /// [value] Input number
@@ -380,7 +382,6 @@ class Generator {
     }
     return bytes;
   }
-
 
   List<int> rawText(
     String text, {
